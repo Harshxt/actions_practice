@@ -1,22 +1,22 @@
-  name: Docker Image Build
+name: Docker Image Build
 
-  on:
-    push:
-      branches: ["main"]
-    pull_request:
-      branches: ["main"]
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-        - name: DB setup
-          run: |
-            docker pull postgres:latest
-            docker run -d \
+      - name: DB setup
+        run: |
+          docker pull postgres:latest
+          docker run -d \
             --name local-postgres \
             -e POSTGRES_USER=postgres \
             -e POSTGRES_PASSWORD=admin \
@@ -24,19 +24,20 @@
             -p 5432:5432 \
             postgres:latest
 
-        - name: Docker Image build
-          run: |
-            docker build -t my-app:latest .
-        - name: Verify build
-          run: |
-            docker images
-            docker run --rm my-app:latest echo "Container runs successfully! Build Verified"
-        - name: Verify build
-          run: |
-            docker images
-            docker run --rm \
+      - name: Wait for Postgres readiness
+        run: |
+          until docker exec local-postgres pg_isready -U postgres; do
+            echo "Waiting for PostgreSQL to start..."
+            sleep 2
+          done
+
+      - name: Docker Image build
+        run: |
+          docker build -t my-app:latest .
+
+      - name: Verify build
+        run: |
+          docker images
+          docker run --rm \
             --add-host=host.docker.internal:host-gateway \
             my-app:latest
-            
-            
-  
