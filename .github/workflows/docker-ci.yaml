@@ -17,7 +17,7 @@ jobs:
 
     - name: Display environment details
       run: |
-        echo "Triggered by event: ${github.event_name}
+        echo "Triggered by event: ${github.event_name}"
         echo "Branch : ${github.ref}"
         echo "pwd:" 
         pwd
