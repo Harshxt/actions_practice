@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: experiments
+  datasource:
+    url: jdbc:postgresql://host.docker.internal:5432/test
+    username: postgres
+    password: admin
+  jpa:
+    hibernate:
+      ddl-auto: update
+
