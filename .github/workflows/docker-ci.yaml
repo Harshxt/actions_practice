@@ -38,6 +38,16 @@ jobs:
       - name: Verify build
         run: |
           docker images
-          docker run --rm \
+          # Start container in detached mode (-d)
+          CONTAINER_ID=$(docker run -d \
             --add-host=host.docker.internal:host-gateway \
-            my-app:latest
+            my-app:latest)
+          
+          # Wait briefly for startup
+          sleep 10
+    
+          # Check logs for successful startup
+          docker logs $CONTAINER_ID | grep -q "Started"
+          
+          # Clean up container
+          docker stop $CONTAINER_ID
