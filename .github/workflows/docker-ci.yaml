@@ -1,50 +1,42 @@
-name: Docker Image Build
+  name: Docker Image Build
 
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  on:
+    push:
+      branches: ["main"]
+    pull_request:
+      branches: ["main"]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
 
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: admin
-          POSTGRES_DB: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        - name: DB setup
+          run: |
+            docker pull postgres:latest
+            docker run -d \
+            --name local-postgres \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=admin \
+            -e POSTGRES_DB=test \
+            -p 5432:5432 \
+            postgres:latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Step 1: Run tests against the Postgres service (Optional, edit to match Maven/Gradle)
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-     
-
-      # Step 2: Build Docker Image (Dockerfile must skip tests inside container)
-      - name: Docker Image build
-        run: |
-          docker build -t my-app:latest .
-
-      # Step 3: Verify build
-      - name: Verify build
-        run: |
-          docker images
-          docker run --rm my-app:latest echo "Container runs successfully! Build Verified"
+        - name: Docker Image build
+          run: |
+            docker build -t my-app:latest .
+        - name: Verify build
+          run: |
+            docker images
+            docker run --rm my-app:latest echo "Container runs successfully! Build Verified"
+        - name: Verify build
+          run: |
+            docker images
+            docker run --rm \
+            --add-host=host.docker.internal:host-gateway \
+            my-app:latest
+            
+            
+  
