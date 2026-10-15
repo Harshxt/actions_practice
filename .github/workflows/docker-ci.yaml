@@ -9,33 +9,53 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: DB setup & Wait
-        run: |
-          docker pull postgres:latest
-          docker run -d \
-            --name local-postgres \
-            -e POSTGRES_USER=postgres \
-            -e POSTGRES_PASSWORD=admin \
-            -e POSTGRES_DB=test \
-            -p 5432:5432 \
-            postgres:latest
-          
-          # Wait until PostgreSQL is fully initialized and accepting connections
-          echo "Waiting for PostgreSQL to be ready..."
-          until docker exec local-postgres pg_isready -U postgres -d test; do
-            sleep 2
-          done
-          echo "PostgreSQL is ready!"
+      # Step 1: Run tests against the Postgres service (Optional, edit to match Maven/Gradle)
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
+      - name: Run Tests
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/test
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: admin
+        run: |
+          if [ -f "gradlew" ]; then
+            ./gradlew test
+          elif [ -f "mvnw" ]; then
+            ./mvnw test
+          else
+            echo "No build tool wrapper found, skipping test step."
+          fi
+
+      # Step 2: Build Docker Image (Dockerfile must skip tests inside container)
       - name: Docker Image build
         run: |
-          # Use host networking so the build can connect to localhost:5432
-          docker build --network=host -t my-app:latest .
+          docker build -t my-app:latest .
 
+      # Step 3: Verify build
       - name: Verify build
         run: |
           docker images
